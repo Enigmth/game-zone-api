@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mvn compile:*)",
+      "Bash(java -version)",
+      "Read(//Library/Java/**)",
+      "Bash($MVN compile:*)",
+      "Bash(/Users/irfanabazi/.m2/wrapper/dists/apache-maven-3.8.1-bin/2l5mhf2pq2clrde7f7qp1rdt5m/apache-maven-3.8.1/bin/mvn compile:*)",
+      "Bash(/Users/irfanabazi/.m2/wrapper/dists/apache-maven-3.8.1-bin/2l5mhf2pq2clrde7f7qp1rdt5m/apache-maven-3.8.1/bin/mvn:*)"
+    ]
+  }
+}
