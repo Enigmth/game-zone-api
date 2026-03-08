@@ -15,7 +15,10 @@ INSERT IGNORE INTO facilities (
     id, name, location_name, address, latitude, longitude
 ) VALUES
     ('55555555-5555-5555-5555-555555555551', 'Downtown Arena', 'City Center', '101 Main St', 41.99810, 21.42540),
-    ('55555555-5555-5555-5555-555555555552', 'Riverside Court', 'Riverside', '25 River Rd', 42.00120, 21.43410);
+    ('55555555-5555-5555-5555-555555555552', 'Riverside Court', 'Riverside', '25 River Rd', 42.00120, 21.43410),
+    ('55555555-5555-5555-5555-555555555553', 'Indoor Futsal Centre (Tetovo West)', 'Tetovo Region', 'Unnamed indoor sports centre near Tetovo', 41.97930, 20.95673),
+    ('55555555-5555-5555-5555-555555555554', 'Palestra e Sportit', 'Near Tetovo', 'Palestra e Sportit (OSM)', 41.87809, 20.88710),
+    ('55555555-5555-5555-5555-555555555555', 'Indoor Futsal Pitch (Tetovo South-West)', 'Near Tetovo', 'Unnamed futsal pitch near Tetovo', 41.89722, 20.90479);
 
 INSERT IGNORE INTO games (
     id, host_id, facility_id, title, start_time, duration_minutes, max_players, price_per_player, status

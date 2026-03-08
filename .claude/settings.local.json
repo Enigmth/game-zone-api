@@ -6,7 +6,12 @@
       "Read(//Library/Java/**)",
       "Bash($MVN compile:*)",
       "Bash(/Users/irfanabazi/.m2/wrapper/dists/apache-maven-3.8.1-bin/2l5mhf2pq2clrde7f7qp1rdt5m/apache-maven-3.8.1/bin/mvn compile:*)",
-      "Bash(/Users/irfanabazi/.m2/wrapper/dists/apache-maven-3.8.1-bin/2l5mhf2pq2clrde7f7qp1rdt5m/apache-maven-3.8.1/bin/mvn:*)"
+      "Bash(/Users/irfanabazi/.m2/wrapper/dists/apache-maven-3.8.1-bin/2l5mhf2pq2clrde7f7qp1rdt5m/apache-maven-3.8.1/bin/mvn:*)",
+      "Bash(for f in /Users/irfanabazi/IdeaProjects/gamezone-api/src/main/java/gamezone/services/*.java)",
+      "Bash(do echo \"=== $f ===\")",
+      "Read(//Users/irfanabazi/IdeaProjects/gamezone-api/**)",
+      "Bash(done)",
+      "Bash(for f in /Users/irfanabazi/IdeaProjects/gamezone-api/src/main/java/gamezone/resources/*.java)"
     ]
   }
 }
