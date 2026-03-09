@@ -12,7 +12,7 @@ import jakarta.ws.rs.ApplicationPath;
 @ApplicationPath("/v1")
 public class GamezoneApplication extends ResourceConfig {
     public GamezoneApplication() {
-        FlywayMigrator.migrate();
+//        FlywayMigrator.migrate();
         packages("gamezone.resources", "gamezone.common.configs");
         register(JacksonFeature.class);
         register(RestExceptionMapper.class);

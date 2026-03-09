@@ -17,15 +17,24 @@ public final class DataBase {
     private static final String ENV_DB_USER = "GAMEZONE_DB_USER";
     private static final String ENV_DB_PASSWORD = "GAMEZONE_DB_PASSWORD";
     private static final String ENV_DB_SSL_MODE = "GAMEZONE_DB_SSL_MODE";
+    private static final String ENV_DB_PARAMS = "GAMEZONE_DB_PARAMS";
+    private static final String MYSQL_DRIVER = "com.mysql.cj.jdbc.Driver";
 
     private static final String DEFAULT_HOST = "127.0.0.1";
     private static final String DEFAULT_PORT = "3306";
     private static final String DEFAULT_DB = "gamezone";
-    private static final String DEFAULT_USER = "root";
+    private static final String DEFAULT_USER = "avnadmin";
     private static final String DEFAULT_PASSWORD = "root";
-    private static final String DEFAULT_SSL_MODE = "DISABLED";
+    private static final String DEFAULT_PARAMS = "sslMode=REQUIRED&connectionTimeZone=UTC&forceConnectionTimeZoneToSession=true";
     private static final Map<String, String> DOT_ENV = loadDotEnv();
 
+    static {
+        try {
+            Class.forName(MYSQL_DRIVER);
+        } catch (ClassNotFoundException e) {
+            throw new IllegalStateException("MySQL driver not found: " + MYSQL_DRIVER, e);
+        }
+    }
 
     private DataBase() {
     }
@@ -41,19 +50,50 @@ public final class DataBase {
         String host = read(ENV_DB_HOST, DEFAULT_HOST);
         String port = read(ENV_DB_PORT, DEFAULT_PORT);
         String db = read(ENV_DB_NAME, DEFAULT_DB);
-        String jdbcUrl = buildJdbcUrl(host, port, db);
+        String params = normalizeJdbcParams(readSetting(ENV_DB_PARAMS, ENV_DB_PARAMS, DEFAULT_PARAMS));
+        String jdbcUrl = buildJdbcUrl(host, port, db, params);
         return DriverManager.getConnection(jdbcUrl, user, password);
     }
 
-    public static String getJdbcUrlForFlyway() {
-        String url = System.getenv(ENV_DB_URL);
-        if (url != null && !url.isBlank()) {
-            return normalizeJdbcUrl(url);
+    private static String normalizeJdbcParams(String params) {
+        String normalized = (params == null) ? "" : params.trim();
+        normalized = appendParamIfMissing(normalized, "connectionTimeZone=UTC", "connectionTimeZone=");
+        normalized = appendParamIfMissing(normalized, "forceConnectionTimeZoneToSession=true", "forceConnectionTimeZoneToSession=");
+        return normalized;
+    }
+
+    private static String appendParamIfMissing(String params, String valueToAppend, String keyPrefix) {
+        if (params.contains(keyPrefix)) {
+            return params;
         }
-        String host = read(ENV_DB_HOST, DEFAULT_HOST);
-        String port = read(ENV_DB_PORT, DEFAULT_PORT);
-        String db = read(ENV_DB_NAME, DEFAULT_DB);
-        return buildJdbcUrl(host, port, db);
+        if (params.isEmpty()) {
+            return valueToAppend;
+        }
+        return params + "&" + valueToAppend;
+    }
+
+    private static String readSetting(String envKey, String propKey, String defaultValue) {
+        String propValue = System.getProperty(propKey);
+        if (propValue != null && !propValue.isBlank()) {
+            return propValue.trim();
+        }
+        String envValue = System.getenv(envKey);
+        if (envValue != null && !envValue.isBlank()) {
+            return envValue.trim();
+        }
+        return defaultValue;
+    }
+
+    public static String getJdbcUrlForFlyway() {
+//        String url = System.getenv(ENV_DB_URL);
+//        if (url != null && !url.isBlank()) {
+//            return normalizeJdbcUrl(url);
+//        }
+//        String host = read(ENV_DB_HOST, DEFAULT_HOST);
+//        String port = read(ENV_DB_PORT, DEFAULT_PORT);
+//        String db = read(ENV_DB_NAME, DEFAULT_DB);
+//        return buildJdbcUrl(host, port, db);
+        return null;
     }
 
     public static String getUserForFlyway() {
@@ -75,11 +115,16 @@ public final class DataBase {
         return value;
     }
 
-    private static String buildJdbcUrl(String host, String port, String db) {
-        String sslMode = read(ENV_DB_SSL_MODE, DEFAULT_SSL_MODE);
-        return "jdbc:mysql://" + host + ":" + port + "/" + db
-                + "?sslMode=" + sslMode
-                + "&allowPublicKeyRetrieval=true&serverTimezone=UTC";
+    private static String buildJdbcUrl(String host, String port, String databaseName, String params) {
+        StringBuilder url = new StringBuilder("jdbc:mysql://");
+        url.append(host).append(":").append(port).append("/").append(databaseName);
+        if (params != null && !params.isBlank()) {
+            if (params.charAt(0) != '?') {
+                url.append('?');
+            }
+            url.append(params);
+        }
+        return url.toString();
     }
 
     private static String normalizeJdbcUrl(String rawUrl) {
