@@ -20,11 +20,6 @@ public final class DataBase {
     private static final String ENV_DB_PARAMS = "GAMEZONE_DB_PARAMS";
     private static final String MYSQL_DRIVER = "com.mysql.cj.jdbc.Driver";
 
-    private static final String DEFAULT_HOST = "127.0.0.1";
-    private static final String DEFAULT_PORT = "3306";
-    private static final String DEFAULT_DB = "gamezone";
-    private static final String DEFAULT_USER = "avnadmin";
-    private static final String DEFAULT_PASSWORD = "root";
     private static final String DEFAULT_PARAMS = "sslMode=REQUIRED&connectionTimeZone=UTC&forceConnectionTimeZoneToSession=true";
     private static final Map<String, String> DOT_ENV = loadDotEnv();
 
@@ -41,15 +36,15 @@ public final class DataBase {
 
     public static Connection getConnection() throws SQLException {
         String url = System.getenv(ENV_DB_URL);
-        String user = read(ENV_DB_USER, DEFAULT_USER);
-        String password = read(ENV_DB_PASSWORD, DEFAULT_PASSWORD);
+        String user = read(ENV_DB_USER, null);
+        String password = read(ENV_DB_PASSWORD, null);
         if (url != null && !url.isBlank()) {
             return DriverManager.getConnection(normalizeJdbcUrl(url), user, password);
         }
 
-        String host = read(ENV_DB_HOST, DEFAULT_HOST);
-        String port = read(ENV_DB_PORT, DEFAULT_PORT);
-        String db = read(ENV_DB_NAME, DEFAULT_DB);
+        String host = read(ENV_DB_HOST, null);
+        String port = read(ENV_DB_PORT, null);
+        String db = read(ENV_DB_NAME, null);
         String params = normalizeJdbcParams(readSetting(ENV_DB_PARAMS, ENV_DB_PARAMS, DEFAULT_PARAMS));
         String jdbcUrl = buildJdbcUrl(host, port, db, params);
         return DriverManager.getConnection(jdbcUrl, user, password);
@@ -97,11 +92,11 @@ public final class DataBase {
     }
 
     public static String getUserForFlyway() {
-        return read(ENV_DB_USER, DEFAULT_USER);
+        return read(ENV_DB_USER, null);
     }
 
     public static String getPasswordForFlyway() {
-        return read(ENV_DB_PASSWORD, DEFAULT_PASSWORD);
+        return read(ENV_DB_PASSWORD, null);
     }
 
     private static String read(String key, String fallback) {
