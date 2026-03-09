@@ -5,11 +5,12 @@ import gamezone.DataBase;
 import gamezone.common.JwtUtil;
 import gamezone.domain.dto.auth.AuthTokensResponse;
 import gamezone.domain.dto.auth.LoginRequest;
+import gamezone.domain.dto.auth.PhoneRequestRequest;
+import gamezone.domain.dto.auth.PhoneVerifyRequest;
 import gamezone.domain.dto.auth.RefreshRequest;
 import gamezone.domain.dto.auth.RegisterRequest;
 import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.NotAuthorizedException;
-import jakarta.ws.rs.NotFoundException;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -17,6 +18,7 @@ import java.sql.ResultSet;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Random;
 import java.util.UUID;
 
 public class AuthService extends AbstractService {
@@ -159,6 +161,61 @@ public class AuthService extends AbstractService {
         } finally {
             closePreparedStatements(ps);
             closeConnections(conn);
+        }
+    }
+
+    public void requestPhoneCode(PhoneRequestRequest request) {
+        String phone = request.phone().trim();
+        String code = String.format("%06d", new Random().nextInt(1_000_000));
+        String id = UUID.randomUUID().toString();
+        Instant expiresAt = Instant.now().plus(10, ChronoUnit.MINUTES);
+
+        try (Connection conn = DataBase.getConnection();
+             PreparedStatement ps = conn.prepareStatement(
+                     "INSERT INTO phone_otps (id, phone, code, expires_at) VALUES (?, ?, ?, ?)")) {
+            ps.setString(1, id);
+            ps.setString(2, phone);
+            ps.setString(3, code);
+            ps.setTimestamp(4, Timestamp.from(expiresAt));
+            ps.executeUpdate();
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to store OTP", e);
+        }
+
+        // Demo: print instead of sending via WhatsApp
+        System.out.println("[DEMO] WhatsApp OTP for " + phone + " → " + code);
+    }
+
+    public AuthTokensResponse verifyPhoneCode(PhoneVerifyRequest request) {
+        String phone = request.phone().trim();
+        // Demo: skip OTP validation — any 6-digit code is accepted
+
+        try (Connection conn = DataBase.getConnection()) {
+            String userId;
+
+            try (PreparedStatement ps = conn.prepareStatement("SELECT id FROM users WHERE phone = ?")) {
+                ps.setString(1, phone);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        userId = rs.getString("id");
+                    } else {
+                        // New user — create account from phone only
+                        userId = UUID.randomUUID().toString();
+                        try (PreparedStatement insert = conn.prepareStatement(
+                                "INSERT INTO users (id, phone) VALUES (?, ?)")) {
+                            insert.setString(1, userId);
+                            insert.setString(2, phone);
+                            insert.executeUpdate();
+                        }
+                    }
+                }
+            }
+
+            return issueTokens(conn, userId);
+        } catch (BadRequestException | NotAuthorizedException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new RuntimeException("Phone verification failed", e);
         }
     }
 

@@ -33,6 +33,8 @@ Jersey-based Java 25 backend scaffold for the Loja mobile app contract.
 - `POST /auth/login`
 - `POST /auth/refresh`
 - `POST /auth/logout`
+- `POST /auth/phone/request`
+- `POST /auth/phone/verify`
 - `GET /games`
 - `GET /games/{gameId}`
 - `POST /games`
@@ -54,7 +56,8 @@ Jersey-based Java 25 backend scaffold for the Loja mobile app contract.
 ## Notes
 - Phase 1 endpoints now run against JDBC + MySQL.
 - `FlywayMigrator` runs on app startup and applies `V1__init_core_schema.sql`.
-- `JwtAuthFilter` currently checks Bearer token presence and requires `X-User-Id` header; token verification TODO.
+- `JwtAuthFilter` verifies Bearer JWT and stores `auth_user_id` on the request context.
+- Phone OTP auth: `POST /auth/phone/request` generates a 6-digit code stored in `phone_otps` (10-min TTL) and prints it to stdout. `POST /auth/phone/verify` skips code validation in demo mode — any 6-digit code is accepted; creates the user if not found, then returns tokens.
 - Payment token storage is intentionally omitted (must be handled by provider references only).
 - Booking creation uses `SELECT ... FOR UPDATE` to enforce `spots_reserved <= max_players`.
 - Free booking cancellation is enforced to `>= 24h` before game start.

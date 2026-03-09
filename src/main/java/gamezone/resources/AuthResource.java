@@ -3,6 +3,8 @@ package gamezone.resources;
 import gamezone.domain.AbstractResource;
 import gamezone.domain.dto.auth.AuthTokensResponse;
 import gamezone.domain.dto.auth.LoginRequest;
+import gamezone.domain.dto.auth.PhoneRequestRequest;
+import gamezone.domain.dto.auth.PhoneVerifyRequest;
 import gamezone.domain.dto.auth.RefreshRequest;
 import gamezone.domain.dto.auth.RegisterRequest;
 import gamezone.services.AuthService;
@@ -43,5 +45,18 @@ public class AuthResource extends AbstractResource {
     public Response logout(@Valid RefreshRequest request) {
         authService.logout(request.refreshToken());
         return okWithMessage("Logged out successfully");
+    }
+
+    @POST
+    @Path("/phone/request")
+    public Response phoneRequest(@Valid PhoneRequestRequest request) {
+        authService.requestPhoneCode(request);
+        return okWithMessage("Code sent");
+    }
+
+    @POST
+    @Path("/phone/verify")
+    public Response phoneVerify(@Valid PhoneVerifyRequest request) {
+        return toJsonResponse(authService.verifyPhoneCode(request));
     }
 }
