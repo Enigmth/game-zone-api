@@ -82,6 +82,7 @@ public class GameService extends AbstractService {
                 }
             }
         } catch (SQLException exception) {
+            System.out.println("Failed to load games" + exception.getMessage());
             throw new WebApplicationException("Failed to load games", exception, 500);
         }
 
