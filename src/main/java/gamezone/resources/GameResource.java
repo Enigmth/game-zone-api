@@ -44,7 +44,7 @@ public class GameResource extends AbstractResource {
     ) {
         int normalizedPage = page == null ? 0 : Math.max(page, 0);
         int normalizedSize = size == null ? 20 : Math.max(size, 1);
-        return toJsonResponse(gameService.getGames(normalizedPage, normalizedSize));
+        return toJsonResponse(gameService.getGames(normalizedPage, normalizedSize).getItems());
     }
 
     @GET
