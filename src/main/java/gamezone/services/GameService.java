@@ -32,17 +32,18 @@ public class GameService extends AbstractService {
                 SELECT g.id,
                        g.title,
                        g.status,
-                       CONCAT(COALESCE(u.first_name, ''), ' ', COALESCE(u.last_name, '')) AS organizer_name,
-                       f.name AS facility_name,
+                       g.host_id,
+                       f.name           AS facility_name,
                        g.max_players,
                        g.start_time,
+                       g.duration_minutes,
                        g.price_per_player,
-                       COALESCE(SUM(CASE WHEN b.payment_status IN ('NONE', 'PENDING', 'PAID') THEN b.spots_reserved ELSE 0 END), 0) AS booked_spots
+                       g.is_public,
+                       g.sport,
+                       g.team_a_color,
+                       g.team_b_color
                 FROM games g
-                JOIN users u ON u.id = g.host_id
                 JOIN facilities f ON f.id = g.facility_id
-                LEFT JOIN bookings b ON b.game_id = g.id
-                GROUP BY g.id, g.title, g.status, u.first_name, u.last_name, f.name, g.max_players, g.start_time, g.price_per_player
                 ORDER BY g.start_time ASC
                 LIMIT ? OFFSET ?
                 """;
@@ -61,28 +62,30 @@ public class GameService extends AbstractService {
 
                 try (ResultSet resultSet = statement.executeQuery()) {
                     while (resultSet.next()) {
-                        int maxPlayers = resultSet.getInt("max_players");
-                        int bookedSpots = resultSet.getInt("booked_spots");
-                        int spotsLeft = Math.max(0, maxPlayers - bookedSpots);
                         BigDecimal price = resultSet.getBigDecimal("price_per_player");
+                        String gameId = resultSet.getString("id");
 
                         items.add(new GameListItemResponse(
-                                resultSet.getString("id"),
+                                gameId,
                                 resultSet.getString("title"),
-                                resultSet.getString("status").toLowerCase(),
-                                resultSet.getString("organizer_name").trim(),
                                 resultSet.getString("facility_name"),
-                                "all",
-                                spotsLeft,
                                 resultSet.getTimestamp("start_time").toInstant().toString(),
-                                price == null ? "Free" : price.stripTrailingZeros().toPlainString(),
-                                null
+                                resultSet.getInt("duration_minutes"),
+                                resultSet.getInt("max_players"),
+                                resultSet.getString("sport"),
+                                price == null,
+                                price == null ? null : String.format("$%.2f", price.doubleValue()),
+                                resultSet.getBoolean("is_public"),
+                                "https://gamezone.app/games/" + gameId,
+                                mapStatus(resultSet.getString("status")),
+                                resultSet.getString("host_id"),
+                                resultSet.getString("team_a_color"),
+                                resultSet.getString("team_b_color")
                         ));
                     }
                 }
             }
         } catch (SQLException exception) {
-            System.out.println("Failed to load games" + exception.getMessage());
             throw new WebApplicationException("Failed to load games", exception, 500);
         }
 
@@ -100,13 +103,14 @@ public class GameService extends AbstractService {
                        g.max_players,
                        g.start_time,
                        g.price_per_player,
+                       g.is_public,
                        COALESCE(SUM(CASE WHEN b.payment_status IN ('NONE', 'PENDING', 'PAID') THEN b.spots_reserved ELSE 0 END), 0) AS booked_spots
                 FROM games g
                 JOIN users u ON u.id = g.host_id
                 JOIN facilities f ON f.id = g.facility_id
                 LEFT JOIN bookings b ON b.game_id = g.id
                 WHERE g.id = ?
-                GROUP BY g.id, g.title, g.status, u.first_name, u.last_name, f.name, g.max_players, g.start_time, g.price_per_player
+                GROUP BY g.id, g.title, g.status, u.first_name, u.last_name, f.name, g.max_players, g.start_time, g.price_per_player, g.is_public
                 """;
 
         try (Connection connection = DataBase.getConnection();
@@ -126,7 +130,7 @@ public class GameService extends AbstractService {
                 return new GameDetailResponse(
                         resultSet.getString("id"),
                         resultSet.getString("title"),
-                        resultSet.getString("status").toLowerCase(),
+                        mapStatus(resultSet.getString("status")),
                         resultSet.getString("organizer_name").trim(),
                         resultSet.getString("facility_name"),
                         "all",
@@ -134,7 +138,7 @@ public class GameService extends AbstractService {
                         spotsLeft,
                         resultSet.getTimestamp("start_time").toInstant().toString(),
                         price == null ? null : price.multiply(BigDecimal.valueOf(100)).intValue(),
-                        true,
+                        resultSet.getBoolean("is_public"),
                         List.of()
                 );
             }
@@ -153,8 +157,8 @@ public class GameService extends AbstractService {
         String insertGameSql = """
                 INSERT INTO games (
                     id, host_id, facility_id, title, max_players, price_per_player,
-                    status, start_time, duration_minutes
-                ) VALUES (?, ?, ?, ?, ?, ?, 'OPEN', ?, ?)
+                    status, start_time, duration_minutes, is_public, sport, team_a_color, team_b_color
+                ) VALUES (?, ?, ?, ?, ?, ?, 'OPEN', ?, ?, ?, ?, ?, ?)
                 """;
 
         try (Connection connection = DataBase.getConnection()) {
@@ -178,6 +182,10 @@ public class GameService extends AbstractService {
                 }
                 gameStatement.setTimestamp(7, Timestamp.valueOf(request.date.atTime(request.time)));
                 gameStatement.setInt(8, request.durationMinutes);
+                gameStatement.setBoolean(9, Boolean.TRUE.equals(request.isPublic));
+                gameStatement.setString(10, request.sport);
+                gameStatement.setString(11, request.teamAColor);
+                gameStatement.setString(12, request.teamBColor);
                 gameStatement.executeUpdate();
 
                 connection.commit();
@@ -191,19 +199,25 @@ public class GameService extends AbstractService {
             throw new WebApplicationException("Failed to create game", exception, 500);
         }
 
-        GameDetailResponse game = new GameDetailResponse(
+        BigDecimal price = Boolean.TRUE.equals(request.isFree) ? null
+                : BigDecimal.valueOf(request.priceCents).movePointLeft(2);
+
+        GameListItemResponse game = new GameListItemResponse(
                 gameId,
                 request.title,
-                "open",
-                "me",
                 request.location,
-                "all",
-                request.players,
-                request.players,
                 request.date.atTime(request.time).toInstant(ZoneOffset.UTC).toString(),
-                request.priceCents,
-                true,
-                List.of()
+                request.durationMinutes != null ? request.durationMinutes : 0,
+                request.players,
+                request.sport,
+                Boolean.TRUE.equals(request.isFree),
+                price == null ? null : String.format("$%.2f", price.doubleValue()),
+                Boolean.TRUE.equals(request.isPublic),
+                "https://gamezone.app/games/" + gameId,
+                "Scheduled",
+                hostId,
+                request.teamAColor,
+                request.teamBColor
         );
 
         return new CreateGameResponse(game, "https://gamezone.app/games/" + gameId);
@@ -238,5 +252,15 @@ public class GameService extends AbstractService {
         }
 
         return participants;
+    }
+
+    private static String mapStatus(String dbStatus) {
+        if (dbStatus == null) return "Scheduled";
+        return switch (dbStatus) {
+            case "OPEN", "FULL" -> "Scheduled";
+            case "COMPLETED"    -> "Completed";
+            case "CANCELLED"    -> "Cancelled";
+            default             -> "Scheduled";
+        };
     }
 }

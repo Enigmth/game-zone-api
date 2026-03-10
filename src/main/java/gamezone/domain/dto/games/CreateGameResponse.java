@@ -1,3 +1,3 @@
 package gamezone.domain.dto.games;
 
-public record CreateGameResponse(GameDetailResponse game, String shareLink) {}
+public record CreateGameResponse(GameListItemResponse game, String shareLink) {}

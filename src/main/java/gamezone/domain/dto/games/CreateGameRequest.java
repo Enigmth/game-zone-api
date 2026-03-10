@@ -33,6 +33,14 @@ public class CreateGameRequest {
     @NotNull
     public Boolean isPublic;
 
+    public String sport;
+
+    @jakarta.validation.constraints.Pattern(regexp = "#[0-9A-Fa-f]{6}", message = "teamAColor must be a hex color e.g. #FF5252")
+    public String teamAColor;
+
+    @jakarta.validation.constraints.Pattern(regexp = "#[0-9A-Fa-f]{6}", message = "teamBColor must be a hex color e.g. #34D67A")
+    public String teamBColor;
+
     @AssertTrue(message = "priceCents must be > 0 when isFree=false")
     public boolean isPriceValid() {
         if (Boolean.TRUE.equals(isFree)) {
