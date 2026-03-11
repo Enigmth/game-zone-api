@@ -3,6 +3,7 @@ package gamezone.services;
 import at.favre.lib.crypto.bcrypt.BCrypt;
 import gamezone.DataBase;
 import gamezone.common.JwtUtil;
+import gamezone.common.WhatsAppService;
 import gamezone.domain.NamedParameterStatement;
 import gamezone.domain.dto.auth.AuthTokensResponse;
 import gamezone.domain.dto.auth.LoginRequest;
@@ -184,8 +185,7 @@ public class AuthService extends AbstractService {
             throw new RuntimeException("Failed to store OTP", e);
         }
 
-        // Demo: print instead of sending via WhatsApp
-        System.out.println("[DEMO] WhatsApp OTP for " + phone + " → " + code);
+        WhatsAppService.getInstance().sendOtp(phone, code);
     }
 
     public AuthTokensResponse verifyPhoneCode(PhoneVerifyRequest request) {
