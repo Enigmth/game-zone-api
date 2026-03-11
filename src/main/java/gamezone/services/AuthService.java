@@ -3,12 +3,14 @@ package gamezone.services;
 import at.favre.lib.crypto.bcrypt.BCrypt;
 import gamezone.DataBase;
 import gamezone.common.JwtUtil;
+import gamezone.domain.NamedParameterStatement;
 import gamezone.domain.dto.auth.AuthTokensResponse;
 import gamezone.domain.dto.auth.LoginRequest;
 import gamezone.domain.dto.auth.PhoneRequestRequest;
 import gamezone.domain.dto.auth.PhoneVerifyRequest;
 import gamezone.domain.dto.auth.RefreshRequest;
 import gamezone.domain.dto.auth.RegisterRequest;
+import gamezone.domain.dto.users.User;
 import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.NotAuthorizedException;
 
@@ -200,13 +202,26 @@ public class AuthService extends AbstractService {
                         userId = rs.getString("id");
                     } else {
                         // New user — create account from phone only
-                        userId = UUID.randomUUID().toString();
-                        try (PreparedStatement insert = conn.prepareStatement(
-                                "INSERT INTO users (id, phone) VALUES (?, ?)")) {
-                            insert.setString(1, userId);
-                            insert.setString(2, phone);
-                            insert.executeUpdate();
-                        }
+                        User user = new User();
+                        user.setId(UUID.randomUUID().toString());
+                        userId = user.getId();
+                        user.setPhone(phone);
+                        NamedParameterStatement insert = new NamedParameterStatement(conn, "INSERT INTO users (\n" +
+                                "    id, email, password_hash, first_name, last_name, rating, win_streak, total_minutes_played, preferred_position, games_played, facilities_played_count, phone\n" +
+                                ") VALUES (:id, :email, :password_hash, :first_name, :last_name, :rating, :win_streak, :total_minutes_played, :preferred_position, :games_played, :facilities_played_count, :phone)");
+                        insert.setString("id", user.getId());
+                        insert.setString("email", user.getEmail());
+                        insert.setString("password_hash", user.getPasswordHash());
+                        insert.setString("first_name", user.getFirstName());
+                        insert.setString("last_name", user.getLastName());
+                        insert.setInt("rating", user.getRating());
+                        insert.setInt("win_streak", user.getWinStreak());
+                        insert.setInt("total_minutes_played", user.getTotalMinutesPlayed());
+                        insert.setString("preferred_position", user.getPreferredPosition());
+                        insert.setInt("games_played", user.getGamesPlayed());
+                        insert.setInt("facilities_played_count", user.getFacilitiesPlayedCount());
+                        insert.setString("phone", user.getPhone());
+                        insert.executeUpdate();
                     }
                 }
             }
