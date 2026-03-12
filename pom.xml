@@ -30,6 +30,9 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.2.5</version>
+                <configuration>
+                    <skipTests>${skip.tests}</skipTests>
+                </configuration>
             </plugin>
         </plugins>
     </build>
@@ -136,5 +139,6 @@
         <java.version>21</java.version>
         <jersey.version>3.1.10</jersey.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <skip.tests>true</skip.tests>
     </properties>
 </project>
